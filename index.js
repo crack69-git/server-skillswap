@@ -10,6 +10,7 @@ dotenv.config();
 const app = express();
 app.use(cors());
 app.use(express.json());
+const { ObjectId } = require("mongodb");
 const port = 5000;
 const uri = process.env.MONGODB_URL;
 const client = new MongoClient(uri, {
@@ -26,14 +27,48 @@ async function run() {
     // Send a ping to confirm a successful connection
     const database = client.db("skillswap");
     const tasksCollection = database.collection("tasks");
+    // single task get
+    app.get("/api/open/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const result = await tasksCollection.findOne({ _id: new ObjectId(id) });
 
-    app.post("/api/tasks", async (req, res) => {
-      const task = req.body;
-      const result = await tasksCollection.insertOne(task);
+        if (!result) {
+          return res.status(404).json({ error: "Task not found" });
+        }
+
+        res.json(result); // Use .json() explicitly instead of .send()
+      } catch (error) {
+        res
+          .status(500)
+          .json({ error: "Internal server error", details: error.message });
+      }
+    });
+
+    // get open jobs
+    app.get("/api/open", async (req, res) => {
+      const result = await tasksCollection
+        .find({ status: "Open" })
+        .sort({ createdAt: -1 })
+        .toArray();
       res.send(result);
     });
+    // posts jobs
+    app.post("/api/tasks", async (req, res) => {
+      try {
+        const task = req.body;
+        const result = await tasksCollection.insertOne(task);
+        res.json({ success: true, taskId: result.insertedId });
+      } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+      }
+    });
+    // get jobs for clien
     app.get("/api/tasks", async (req, res) => {
-      const result = await tasksCollection.find().toArray();
+      const result = await tasksCollection
+        .find()
+        .sort({ createdAt: -1 })
+        .toArray();
       res.send(result);
     });
 
