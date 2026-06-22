@@ -27,6 +27,36 @@ async function run() {
     // Send a ping to confirm a successful connection
     const database = client.db("skillswap");
     const tasksCollection = database.collection("tasks");
+    const proposalsCollection = database.collection("proposals");
+    const usersCollection = database.collection("user");
+    // user get
+    app.get("/api/user", async (req, res) => {
+      const result = await usersCollection.find().toArray();
+      res.send(result);
+    });
+    // get proposals for a task
+    app.get("/api/proposals/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const result = await proposalsCollection
+          .find({ freelancerId: id })
+          .toArray();
+        res.json(result);
+      } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+      }
+    });
+
+    // post proposal
+    app.post("/api/proposals", async (req, res) => {
+      const proposal = req.body;
+      try {
+        const result = await proposalsCollection.insertOne(proposal);
+        res.json({ success: true, proposalId: result.insertedId });
+      } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+      }
+    });
     // single task get
     app.get("/api/open/:id", async (req, res) => {
       try {
@@ -48,7 +78,7 @@ async function run() {
     // get open jobs
     app.get("/api/open", async (req, res) => {
       const result = await tasksCollection
-        .find({ status: "Open" })
+        .find({ status: "Open", state: "active" })
         .sort({ createdAt: -1 })
         .toArray();
       res.send(result);
@@ -63,7 +93,7 @@ async function run() {
         res.status(500).json({ success: false, error: err.message });
       }
     });
-    // get jobs for clien
+    // get jobs for client
     app.get("/api/tasks", async (req, res) => {
       const result = await tasksCollection
         .find()
