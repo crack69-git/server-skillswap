@@ -29,10 +29,65 @@ async function run() {
     const tasksCollection = database.collection("tasks");
     const proposalsCollection = database.collection("proposals");
     const usersCollection = database.collection("user");
+    // delete task
+    app.delete("/api/tasks/:id", async (req, res) => {
+      const id = req.params.id;
+      try {
+        const result = await tasksCollection.deleteOne({
+          _id: new ObjectId(id),
+        });
+        if (result.deletedCount === 0) {
+          return res
+            .status(404)
+            .json({ success: false, error: "Task not found" });
+        }
+        res.json({ success: true, message: "Task deleted successfully" });
+      } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+      }
+    });
+    //patch task
+    app.patch("/api/tasks/:id", async (req, res) => {
+      const id = req.params.id;
+      const updateData = req.body;
+      try {
+        const result = await tasksCollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $set: updateData },
+        );
+        if (result.matchedCount === 0) {
+          return res
+            .status(404)
+            .json({ success: false, error: "Task not found" });
+        }
+        res.json({ success: true, message: "Task updated successfully" });
+      } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+      }
+    });
     // user get
     app.get("/api/user", async (req, res) => {
       const result = await usersCollection.find().toArray();
       res.send(result);
+    });
+    //patch user
+    app.patch("/api/user/:id", async (req, res) => {
+      const id = req.params.id;
+      const updateData = req.body;
+      try {
+        const result = await usersCollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $set: updateData },
+        );
+        if (result.matchedCount === 0) {
+          return res
+            .status(404)
+            .json({ success: false, error: "User not found" });
+        }
+        res.json({ success: true, message: "User updated successfully" });
+      } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+      }
     });
     // get proposals for a task
     app.get("/api/proposals/:id", async (req, res) => {
