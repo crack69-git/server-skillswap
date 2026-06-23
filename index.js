@@ -29,6 +29,49 @@ async function run() {
     const tasksCollection = database.collection("tasks");
     const proposalsCollection = database.collection("proposals");
     const usersCollection = database.collection("user");
+
+    // change state of tasks
+    app.patch("/api/proposals/:id", async (req, res) => {
+      const id = req.params.id;
+      const updateData = req.body;
+      try {
+        const result = await proposalsCollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $set: updateData },
+        );
+        if (result.matchedCount === 0) {
+          return res
+            .status(404)
+            .json({ success: false, error: "Proposal not found" });
+        }
+        res.json({ success: true, message: "Proposal updated successfully" });
+      } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+      }
+    });
+
+    // find all the proposals with the same userId
+    app.get("/api/proposals/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const result = await proposalsCollection
+          .find({ clientId: id })
+          .toArray();
+        res.json(result);
+      } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+      }
+    });
+    //get proposals for a task
+    app.get("/api/getprop/:email", async (req, res) => {
+      const email = req.params.email;
+      const result = await proposalsCollection
+        .find({
+          freelancerMail: email,
+        })
+        .toArray();
+      res.json(result);
+    });
     // delete task
     app.delete("/api/tasks/:id", async (req, res) => {
       const id = req.params.id;
@@ -133,7 +176,7 @@ async function run() {
     // get open jobs
     app.get("/api/open", async (req, res) => {
       const result = await tasksCollection
-        .find({ status: "Open", state: "active" })
+        .find({ status: "Open", state: "accepted" })
         .sort({ createdAt: -1 })
         .toArray();
       res.send(result);
