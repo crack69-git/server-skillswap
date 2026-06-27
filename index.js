@@ -30,6 +30,62 @@ async function run() {
     const proposalsCollection = database.collection("proposals");
     const usersCollection = database.collection("user");
 
+    //stripe checkout
+    const Stripe = require("stripe");
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+    app.post("/api/create-checkout-session", async (req, res) => {
+      try {
+        const { proposalId } = req.body;
+
+        const proposal = await proposalsCollection.findOne({
+          _id: new ObjectId(proposalId),
+        });
+
+        if (!proposal) {
+          return res.status(404).json({
+            message: "Proposal not found",
+          });
+        }
+
+        const session = await stripe.checkout.sessions.create({
+          mode: "payment",
+
+          payment_method_types: ["card"],
+
+          line_items: [
+            {
+              price_data: {
+                currency: "usd",
+
+                product_data: {
+                  name: proposal.taskTitle,
+                },
+
+                unit_amount: proposal.bid * 100,
+              },
+
+              quantity: 1,
+            },
+          ],
+
+          success_url: `${process.env.BASE_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
+
+          // cancel_url: "http://localhost:3000/cancel",
+        });
+
+        res.json({
+          url: session.url,
+        });
+      } catch (err) {
+        console.log(err);
+
+        res.status(500).json({
+          message: err.message,
+        });
+      }
+    });
+
     // change state of tasks
     app.patch("/api/proposals/:id", async (req, res) => {
       const id = req.params.id;
@@ -51,13 +107,13 @@ async function run() {
     });
 
     // find all the proposals with the same userId
-    app.get("/api/proposals/:id", async (req, res) => {
+    app.get("/api/proposals/client/:id", async (req, res) => {
       try {
         const id = req.params.id;
         const result = await proposalsCollection
           .find({ clientId: id })
           .toArray();
-        res.json(result);
+        res.send(result);
       } catch (err) {
         res.status(500).json({ success: false, error: err.message });
       }
@@ -107,6 +163,13 @@ async function run() {
       } catch (err) {
         res.status(500).json({ success: false, error: err.message });
       }
+    });
+    //get freelancer by role
+    app.get("/api/user/freelancer", async (req, res) => {
+      const result = await usersCollection
+        .find({ role: "freelancer" })
+        .toArray();
+      res.send(result);
     });
     // user get
     app.get("/api/user", async (req, res) => {
