@@ -87,14 +87,33 @@ async function run() {
         });
       }
     });
-    // post purchase
-    app.post("/api/purchases", async (req, res) => {
-      const purchase = req.body;
+    // post payment
+    app.post("/api/payments", async (req, res) => {
       try {
-        const result = await purchasesCollection.insertOne(purchase);
-        res.json({ success: true, purchaseId: result.insertedId });
+        const payment = req.body;
+
+        const exists = await paymentsCollection.findOne({
+          paymentIntentId: payment.paymentIntentId,
+        });
+
+        if (exists) {
+          return res.json({
+            success: true,
+            message: "Payment already exists",
+          });
+        }
+
+        const result = await paymentsCollection.insertOne(payment);
+
+        res.json({
+          success: true,
+          paymentId: result.insertedId,
+        });
       } catch (err) {
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({
+          success: false,
+          error: err.message,
+        });
       }
     });
 
