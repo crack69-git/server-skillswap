@@ -110,7 +110,27 @@ async function run() {
         res.status(500).json({ success: false, error: err.message });
       }
     });
-    //fetch in-progress projects for a freelancer
+    //by inputing current session freelancer email get taskId of those task which are status accepted and return all the task with the same taskId
+    app.get("/api/proposals/freelancer/:email", async (req, res) => {
+      const email = req.params.email;
+      try {
+        const proposals = await proposalsCollection
+          .find({
+            freelancerMail: email,
+            status: "accepted",
+          })
+          .toArray();
+        const taskIds = [
+          ...new Set(proposals.map((p) => new ObjectId(p.taskId))),
+        ];
+        const tasks = await tasksCollection
+          .find({ _id: { $in: taskIds }, status: "in-progress" })
+          .toArray();
+        res.json(tasks);
+      } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+      }
+    });
 
     // get payment
     app.get("/api/payments", async (req, res) => {
@@ -325,6 +345,13 @@ async function run() {
         res.status(500).json({ success: false, error: err.message });
       }
     });
+    //get tasks if taskId from  exixts the taskId
+    // app.get("/api/tasks/gettask/:id", async (req, res) => {
+    //   const id = req.params.id;
+
+    //   const task = await tasksCollection.findOne({ _id: new ObjectId(id) });
+    //   res.json(task);
+    // });
     // get jobs for client
     app.get("/api/tasks", async (req, res) => {
       const result = await tasksCollection
