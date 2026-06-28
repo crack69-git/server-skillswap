@@ -88,6 +88,20 @@ async function run() {
         });
       }
     });
+
+    // get sum of amout_received from payments collection with freelancerMail
+    app.get("/api/payments/sum/:email", async (req, res) => {
+      const email = req.params.email;
+      try {
+        const payments = await paymentsCollection
+          .find({ freelancerMail: email })
+          .toArray();
+
+        res.json({ payments });
+      } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+      }
+    });
     //patch task status
     app.patch("/api/tasks/status/:id", async (req, res) => {
       const id = req.params.id;
