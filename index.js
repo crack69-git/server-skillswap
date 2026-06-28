@@ -30,7 +30,7 @@ async function run() {
     const tasksCollection = database.collection("tasks");
     const proposalsCollection = database.collection("proposals");
     const usersCollection = database.collection("user");
-
+    const paymentsCollection = database.collection("payments");
     //stripe checkout
     const Stripe = require("stripe");
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -39,7 +39,7 @@ async function run() {
       try {
         const { proposalId } = req.body;
 
-        const proposal = await proposalsCollection.findOne({
+        const proposal = await paymentsCollection.findOne({
           _id: new ObjectId(proposalId),
         });
 
@@ -84,6 +84,16 @@ async function run() {
         res.status(500).json({
           message: err.message,
         });
+      }
+    });
+    // post purchase
+    app.post("/api/purchases", async (req, res) => {
+      const purchase = req.body;
+      try {
+        const result = await purchasesCollection.insertOne(purchase);
+        res.json({ success: true, purchaseId: result.insertedId });
+      } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
       }
     });
 
