@@ -39,7 +39,7 @@ async function run() {
       try {
         const { proposalId } = req.body;
 
-        const proposal = await paymentsCollection.findOne({
+        const proposal = await proposalsCollection.findOne({
           _id: new ObjectId(proposalId),
         });
 
@@ -51,28 +51,29 @@ async function run() {
 
         const session = await stripe.checkout.sessions.create({
           mode: "payment",
-
           payment_method_types: ["card"],
 
           line_items: [
             {
               price_data: {
                 currency: "usd",
-
                 product_data: {
                   name: proposal.taskTitle,
                 },
-
                 unit_amount: proposal.bid * 100,
               },
-
               quantity: 1,
             },
           ],
 
-          success_url: `${process.env.BASE_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
+          metadata: {
+            proposalId: proposal._id.toString(),
+            taskId: proposal.taskId.toString(),
+            clientId: proposal.clientId.toString(),
+            freelancerMail: proposal.freelancerMail.toString(),
+          },
 
-          // cancel_url: "http://localhost:3000/cancel",
+          success_url: `${process.env.BASE_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
         });
 
         res.json({
