@@ -88,6 +88,30 @@ async function run() {
         });
       }
     });
+    //patch task status
+    app.patch("/api/tasks/status/:id", async (req, res) => {
+      const id = req.params.id;
+      const updateData = req.body;
+      try {
+        const result = await tasksCollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $set: updateData },
+        );
+        if (result.matchedCount === 0) {
+          return res
+            .status(404)
+            .json({ success: false, error: "Task not found" });
+        }
+        res.json({
+          success: true,
+          message: "Task status updated successfully",
+        });
+      } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+      }
+    });
+    //fetch in-progress projects for a freelancer
+
     // get payment
     app.get("/api/payments", async (req, res) => {
       try {
