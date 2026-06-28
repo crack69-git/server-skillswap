@@ -74,6 +74,7 @@ async function run() {
           },
 
           success_url: `${process.env.BASE_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url: `${process.env.BASE_URL}/unsuccessful`,
         });
 
         res.json({
@@ -87,31 +88,46 @@ async function run() {
         });
       }
     });
+    // get payment
+    app.get("/api/payments", async (req, res) => {
+      try {
+        const payments = await paymentsCollection.find({}).toArray();
+        res.json(payments);
+      } catch (err) {
+        res.status(500).json({
+          success: false,
+          error: err.message,
+        });
+      }
+    });
     // post payment
     app.post("/api/payments", async (req, res) => {
       try {
         const payment = req.body;
 
+        const paymentData = {
+          ...payment,
+          createdAt: new Date(),
+        };
         const exists = await paymentsCollection.findOne({
           paymentIntentId: payment.paymentIntentId,
         });
 
         if (exists) {
           return res.json({
-            success: true,
-            message: "Payment already exists",
+            ok: false,
+            message: "Already saved",
           });
         }
-
-        const result = await paymentsCollection.insertOne(payment);
+        const result = await paymentsCollection.insertOne(paymentData);
 
         res.json({
-          success: true,
-          paymentId: result.insertedId,
+          ok: true,
+          insertedId: result.insertedId,
         });
       } catch (err) {
         res.status(500).json({
-          success: false,
+          ok: false,
           error: err.message,
         });
       }
