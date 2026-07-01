@@ -31,9 +31,20 @@ async function run() {
     const proposalsCollection = database.collection("proposals");
     const usersCollection = database.collection("user");
     const paymentsCollection = database.collection("payments");
+    const freelancersCollection = database.collection("freelancers");
     //stripe checkout
     const Stripe = require("stripe");
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+    app.post("/api/freelancers/profile", async (req, res) => {
+      try {
+        const freelancer = req.body;
+        const result = await freelancersCollection.insertOne(freelancer);
+        res.json({ success: true, freelancerId: result.insertedId });
+      } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+      }
+    });
 
     app.post("/api/create-checkout-session", async (req, res) => {
       try {
@@ -296,6 +307,21 @@ async function run() {
             .json({ success: false, error: "User not found" });
         }
         res.json({ success: true, message: "User updated successfully" });
+      } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+      }
+    });
+    //get user data by id
+    app.get("/api/user/freelancer/:id", async (req, res) => {
+      const id = req.params.id;
+      try {
+        const result = await usersCollection.findOne({ _id: new ObjectId(id) });
+        if (!result) {
+          return res
+            .status(404)
+            .json({ success: false, error: "User not found" });
+        }
+        res.json(result);
       } catch (err) {
         res.status(500).json({ success: false, error: err.message });
       }
