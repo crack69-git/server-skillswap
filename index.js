@@ -202,6 +202,29 @@ async function run() {
       }
     });
 
+    //total amount received by a freelancer
+    app.get("/api/payments/total/:email", async (req, res) => {
+      const email = req.params.email;
+
+      try {
+        const payments = await paymentsCollection
+          .find({ freelancerMail: email })
+          .toArray();
+
+        const total = payments.reduce(
+          (sum, payment) => sum + Number(payment.amount_received),
+          0,
+        );
+
+        res.json({ total });
+      } catch (err) {
+        res.status(500).json({
+          success: false,
+          error: err.message,
+        });
+      }
+    });
+
     // change state of tasks
     app.patch("/api/proposals/:id", async (req, res) => {
       const id = req.params.id;
