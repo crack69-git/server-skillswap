@@ -80,8 +80,10 @@ async function run() {
           metadata: {
             proposalId: proposal._id.toString(),
             taskId: proposal.taskId.toString(),
+            taskTitle: proposal.taskTitle.toString(),
             clientId: proposal.clientId.toString(),
             freelancerMail: proposal.freelancerMail.toString(),
+            deadline: proposal.date.toString(),
           },
 
           success_url: `${process.env.BASE_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
@@ -160,7 +162,10 @@ async function run() {
     // get payment
     app.get("/api/payments", async (req, res) => {
       try {
-        const payments = await paymentsCollection.find({}).toArray();
+        const payments = await paymentsCollection
+          .find({})
+          .sort({ createdAt: -1 })
+          .toArray();
         res.json(payments);
       } catch (err) {
         res.status(500).json({
@@ -197,6 +202,22 @@ async function run() {
       } catch (err) {
         res.status(500).json({
           ok: false,
+          error: err.message,
+        });
+      }
+    });
+    //total revenue or transections
+    app.get("/api/payments/sum", async (req, res) => {
+      try {
+        const payments = await paymentsCollection.find({}).toArray();
+        const total = payments.reduce(
+          (sum, payment) => sum + Number(payment.amount_received),
+          0,
+        );
+        res.json({ total });
+      } catch (err) {
+        res.status(500).json({
+          success: false,
           error: err.message,
         });
       }
@@ -251,6 +272,7 @@ async function run() {
         const id = req.params.id;
         const result = await proposalsCollection
           .find({ clientId: id })
+          .sort({ currentDate: -1 })
           .toArray();
         res.send(result);
       } catch (err) {
@@ -408,13 +430,7 @@ async function run() {
         res.status(500).json({ success: false, error: err.message });
       }
     });
-    //get tasks if taskId from  exixts the taskId
-    // app.get("/api/tasks/gettask/:id", async (req, res) => {
-    //   const id = req.params.id;
 
-    //   const task = await tasksCollection.findOne({ _id: new ObjectId(id) });
-    //   res.json(task);
-    // });
     // get jobs for client
     app.get("/api/tasks", async (req, res) => {
       const result = await tasksCollection
