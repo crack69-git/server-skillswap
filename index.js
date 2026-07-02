@@ -223,6 +223,22 @@ async function run() {
       }
     });
 
+    //get all payments
+    app.get("/api/payments/all", async (req, res) => {
+      try {
+        const payments = await paymentsCollection
+          .find({})
+          .sort({ createdAt: -1 })
+          .toArray();
+        res.json(payments);
+      } catch (err) {
+        res.status(500).json({
+          success: false,
+          error: err.message,
+        });
+      }
+    });
+
     //total amount received by a freelancer
     app.get("/api/payments/total/:email", async (req, res) => {
       const email = req.params.email;
@@ -327,10 +343,31 @@ async function run() {
     });
     //get freelancer by role
     app.get("/api/user/freelancer", async (req, res) => {
-      const result = await usersCollection
-        .find({ role: "freelancer" })
-        .toArray();
-      res.send(result);
+      try {
+        const { name, skill } = req.query;
+
+        const filter = {
+          role: "freelancer",
+        };
+
+        if (name) {
+          filter.name = {
+            $regex: name,
+            $options: "i",
+          };
+        }
+
+        if (skill) {
+          filter.skills = skill;
+          // or filter.skills = { $in: [skill] };
+        }
+
+        const result = await usersCollection.find(filter).toArray();
+
+        res.send(result);
+      } catch (err) {
+        res.status(500).send({ error: err.message });
+      }
     });
     // user get
     app.get("/api/user", async (req, res) => {
