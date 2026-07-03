@@ -451,11 +451,46 @@ async function run() {
 
     // get open jobs
     app.get("/api/open", async (req, res) => {
-      const result = await tasksCollection
-        .find({ status: "Open", state: "accepted" })
-        .sort({ createdAt: -1 })
-        .toArray();
-      res.send(result);
+      try {
+        const { name, skill, page = 1, limit = 9 } = req.query;
+
+        const filter = {
+          status: "Open",
+          state: "accepted",
+        };
+
+        if (name) {
+          filter.TaskTitle = {
+            $regex: name,
+            $options: "i",
+          };
+        }
+
+        if (skill) {
+          filter.category = skill;
+        }
+
+        // Convert string inputs to numbers
+        const pageNum = parseInt(page, 10) || 1;
+        const limitNum = parseInt(limit, 10) || 9;
+        const skipNum = (pageNum - 1) * limitNum;
+
+        // 1. Get total matching count for pagination UI calculation
+        const totalItems = await tasksCollection.countDocuments(filter);
+
+        // 2. Fetch data chunk
+        const result = await tasksCollection
+          .find(filter)
+          .sort({ createdAt: -1 })
+          .skip(skipNum)
+          .limit(limitNum)
+          .toArray();
+
+        // Return both pieces of metadata
+        res.send({ tasks: result, totalItems });
+      } catch (err) {
+        res.status(500).send({ error: err.message });
+      }
     });
     // posts jobs
     app.post("/api/tasks", async (req, res) => {
