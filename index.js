@@ -492,7 +492,22 @@ async function run() {
         res.status(500).send({ error: err.message });
       }
     });
+    // get open task
+    app.get("/api/open/feature/open/task", async (req, res) => {
+      try {
+        const result = await tasksCollection
+          .find({ status: "Open", state: "accepted" })
+          .sort({ createdAt: -1 })
+          .limit(6)
+          .toArray();
+        res.send(result);
+      } catch (err) {
+        res.status(500).send({ error: err.message });
+      }
+    });
+
     // posts jobs
+
     app.post("/api/tasks", async (req, res) => {
       try {
         const task = req.body;
