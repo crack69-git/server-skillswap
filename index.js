@@ -403,6 +403,7 @@ async function run() {
       const result = await usersCollection.find().toArray();
       res.send(result);
     });
+
     //patch user
     app.patch("/api/user/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
@@ -461,7 +462,7 @@ async function run() {
       }
     });
     // single task get
-    app.get("/api/open/:id", verifyToken, async (req, res) => {
+    app.get("/api/open/:id", async (req, res) => {
       try {
         const id = req.params.id;
         const result = await tasksCollection.findOne({ _id: new ObjectId(id) });
@@ -479,7 +480,7 @@ async function run() {
     });
 
     // get open jobs
-    app.get("/api/open", verifyToken, async (req, res) => {
+    app.get("/api/open", async (req, res) => {
       try {
         const { name, skill, page = 1, limit = 9 } = req.query;
 
@@ -522,7 +523,7 @@ async function run() {
       }
     });
     // get open task
-    app.get("/api/open/feature/open/task", verifyToken, async (req, res) => {
+    app.get("/api/open/feature/open/task", async (req, res) => {
       try {
         const result = await tasksCollection
           .find({ status: "Open", state: "accepted" })
