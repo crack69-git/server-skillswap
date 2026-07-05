@@ -6,6 +6,7 @@ const { MongoClient, ServerApiVersion } = require("mongodb");
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
+
 dotenv.config();
 const app = express();
 app.use(cors());
@@ -20,6 +21,30 @@ const client = new MongoClient(uri, {
     deprecationErrors: true,
   },
 });
+const jose = require("jose-cjs");
+const JWKS = jose.createRemoteJWKSet(
+  new URL("http://localhost:3000/api/auth/jwks"),
+);
+const verifyToken = async (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).json({ message: "Authorization header missing" });
+  }
+  const token = authHeader.split(" ")[1];
+  if (!token) {
+    return res.status(401).json({ message: "Token missing" });
+  }
+  try {
+    const { payload } = await jose.jwtVerify(token, JWKS);
+
+    req.user = payload;
+    next();
+  } catch (err) {
+    console.error(err);
+    return res.status(401).json({ message: "Invalid token" });
+  }
+};
+
 // fixing
 async function run() {
   try {
@@ -36,7 +61,7 @@ async function run() {
     const Stripe = require("stripe");
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-    app.post("/api/freelancers/profile", async (req, res) => {
+    app.post("/api/freelancers/profile", verifyToken, async (req, res) => {
       try {
         const freelancer = req.body;
         const result = await freelancersCollection.insertOne(freelancer);
@@ -46,7 +71,7 @@ async function run() {
       }
     });
 
-    app.post("/api/create-checkout-session", async (req, res) => {
+    app.post("/api/create-checkout-session", verifyToken, async (req, res) => {
       try {
         const { proposalId } = req.body;
 
@@ -103,7 +128,7 @@ async function run() {
     });
 
     // get sum of amout_received from payments collection with freelancerMail
-    app.get("/api/payments/sum/:email", async (req, res) => {
+    app.get("/api/payments/sum/:email", verifyToken, async (req, res) => {
       const email = req.params.email;
       try {
         const payments = await paymentsCollection
@@ -116,7 +141,7 @@ async function run() {
       }
     });
     //patch task status
-    app.patch("/api/tasks/status/:id", async (req, res) => {
+    app.patch("/api/tasks/status/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
       const updateData = req.body;
       try {
@@ -138,29 +163,33 @@ async function run() {
       }
     });
     //by inputing current session freelancer email get taskId of those task which are status accepted and return all the task with the same taskId
-    app.get("/api/proposals/freelancer/:email", async (req, res) => {
-      const email = req.params.email;
-      try {
-        const proposals = await proposalsCollection
-          .find({
-            freelancerMail: email,
-            status: "accepted",
-          })
-          .toArray();
-        const taskIds = [
-          ...new Set(proposals.map((p) => new ObjectId(p.taskId))),
-        ];
-        const tasks = await tasksCollection
-          .find({ _id: { $in: taskIds }, status: "in-progress" })
-          .toArray();
-        res.json(tasks);
-      } catch (err) {
-        res.status(500).json({ success: false, error: err.message });
-      }
-    });
+    app.get(
+      "/api/proposals/freelancer/:email",
+      verifyToken,
+      async (req, res) => {
+        const email = req.params.email;
+        try {
+          const proposals = await proposalsCollection
+            .find({
+              freelancerMail: email,
+              status: "accepted",
+            })
+            .toArray();
+          const taskIds = [
+            ...new Set(proposals.map((p) => new ObjectId(p.taskId))),
+          ];
+          const tasks = await tasksCollection
+            .find({ _id: { $in: taskIds }, status: "in-progress" })
+            .toArray();
+          res.json(tasks);
+        } catch (err) {
+          res.status(500).json({ success: false, error: err.message });
+        }
+      },
+    );
 
     // get payment
-    app.get("/api/payments", async (req, res) => {
+    app.get("/api/payments", verifyToken, async (req, res) => {
       try {
         const payments = await paymentsCollection
           .find({})
@@ -175,7 +204,7 @@ async function run() {
       }
     });
     // post payment
-    app.post("/api/payments", async (req, res) => {
+    app.post("/api/payments", verifyToken, async (req, res) => {
       try {
         const payment = req.body;
 
@@ -207,7 +236,7 @@ async function run() {
       }
     });
     //total revenue or transections
-    app.get("/api/payments/sum", async (req, res) => {
+    app.get("/api/payments/sum", verifyToken, async (req, res) => {
       try {
         const payments = await paymentsCollection.find({}).toArray();
         const total = payments.reduce(
@@ -224,7 +253,7 @@ async function run() {
     });
 
     //get all payments
-    app.get("/api/payments/all", async (req, res) => {
+    app.get("/api/payments/all", verifyToken, async (req, res) => {
       try {
         const payments = await paymentsCollection
           .find({})
@@ -240,7 +269,7 @@ async function run() {
     });
 
     //total amount received by a freelancer
-    app.get("/api/payments/total/:email", async (req, res) => {
+    app.get("/api/payments/total/:email", verifyToken, async (req, res) => {
       const email = req.params.email;
 
       try {
@@ -263,7 +292,7 @@ async function run() {
     });
 
     // change state of tasks
-    app.patch("/api/proposals/:id", async (req, res) => {
+    app.patch("/api/proposals/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
       const updateData = req.body;
       try {
@@ -283,7 +312,7 @@ async function run() {
     });
 
     // find all the proposals with the same userId
-    app.get("/api/proposals/client/:id", async (req, res) => {
+    app.get("/api/proposals/client/:id", verifyToken, async (req, res) => {
       try {
         const id = req.params.id;
         const result = await proposalsCollection
@@ -296,7 +325,7 @@ async function run() {
       }
     });
     //get proposals for a task
-    app.get("/api/getprop/:email", async (req, res) => {
+    app.get("/api/getprop/:email", verifyToken, async (req, res) => {
       const email = req.params.email;
       const result = await proposalsCollection
         .find({
@@ -306,7 +335,7 @@ async function run() {
       res.json(result);
     });
     // delete task
-    app.delete("/api/tasks/:id", async (req, res) => {
+    app.delete("/api/tasks/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
       try {
         const result = await tasksCollection.deleteOne({
@@ -323,7 +352,7 @@ async function run() {
       }
     });
     //patch task
-    app.patch("/api/tasks/:id", async (req, res) => {
+    app.patch("/api/tasks/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
       const updateData = req.body;
       try {
@@ -342,7 +371,7 @@ async function run() {
       }
     });
     //get freelancer by role
-    app.get("/api/user/freelancer", async (req, res) => {
+    app.get("/api/user/freelancer", verifyToken, async (req, res) => {
       try {
         const { name, skill } = req.query;
 
@@ -370,12 +399,12 @@ async function run() {
       }
     });
     // user get
-    app.get("/api/user", async (req, res) => {
+    app.get("/api/user", verifyToken, async (req, res) => {
       const result = await usersCollection.find().toArray();
       res.send(result);
     });
     //patch user
-    app.patch("/api/user/:id", async (req, res) => {
+    app.patch("/api/user/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
       const updateData = req.body;
       try {
@@ -394,7 +423,7 @@ async function run() {
       }
     });
     //get user data by id
-    app.get("/api/user/freelancer/:id", async (req, res) => {
+    app.get("/api/user/freelancer/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
       try {
         const result = await usersCollection.findOne({ _id: new ObjectId(id) });
@@ -409,7 +438,7 @@ async function run() {
       }
     });
     // get proposals for a task
-    app.get("/api/proposals/:id", async (req, res) => {
+    app.get("/api/proposals/:id", verifyToken, async (req, res) => {
       try {
         const id = req.params.id;
         const result = await proposalsCollection
@@ -422,7 +451,7 @@ async function run() {
     });
 
     // post proposal
-    app.post("/api/proposals", async (req, res) => {
+    app.post("/api/proposals", verifyToken, async (req, res) => {
       const proposal = req.body;
       try {
         const result = await proposalsCollection.insertOne(proposal);
@@ -432,7 +461,7 @@ async function run() {
       }
     });
     // single task get
-    app.get("/api/open/:id", async (req, res) => {
+    app.get("/api/open/:id", verifyToken, async (req, res) => {
       try {
         const id = req.params.id;
         const result = await tasksCollection.findOne({ _id: new ObjectId(id) });
@@ -450,7 +479,7 @@ async function run() {
     });
 
     // get open jobs
-    app.get("/api/open", async (req, res) => {
+    app.get("/api/open", verifyToken, async (req, res) => {
       try {
         const { name, skill, page = 1, limit = 9 } = req.query;
 
@@ -493,7 +522,7 @@ async function run() {
       }
     });
     // get open task
-    app.get("/api/open/feature/open/task", async (req, res) => {
+    app.get("/api/open/feature/open/task", verifyToken, async (req, res) => {
       try {
         const result = await tasksCollection
           .find({ status: "Open", state: "accepted" })
@@ -508,7 +537,7 @@ async function run() {
 
     // posts jobs
 
-    app.post("/api/tasks", async (req, res) => {
+    app.post("/api/tasks", verifyToken, async (req, res) => {
       try {
         const task = req.body;
         const result = await tasksCollection.insertOne(task);
@@ -519,7 +548,7 @@ async function run() {
     });
 
     // get jobs for client
-    app.get("/api/tasks", async (req, res) => {
+    app.get("/api/tasks", verifyToken, async (req, res) => {
       const result = await tasksCollection
         .find()
         .sort({ createdAt: -1 })
