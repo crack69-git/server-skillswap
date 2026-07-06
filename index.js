@@ -405,21 +405,30 @@ async function run() {
     });
 
     //patch user
-    app.patch("/api/user/:id", verifyToken, async (req, res) => {
+    app.patch("/api/user/update/:id", verifyToken, async (req, res) => {
+      console.log("Request body received:", req.body);
       const id = req.params.id;
-      const updateData = req.body;
+
+      // Destructure to isolate and discard id fields if they accidentally slipped through
+      const { _id, id: clientId, ...updateData } = req.body;
+
       try {
         const result = await usersCollection.updateOne(
           { _id: new ObjectId(id) },
-          { $set: updateData },
+          { $set: updateData }, // Now contains only clean updates like name, bio, etc.
         );
+
+        console.log("Update result:", result);
+
         if (result.matchedCount === 0) {
           return res
             .status(404)
             .json({ success: false, error: "User not found" });
         }
+
         res.json({ success: true, message: "User updated successfully" });
       } catch (err) {
+        console.error("Database error details:", err);
         res.status(500).json({ success: false, error: err.message });
       }
     });
