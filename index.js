@@ -378,7 +378,7 @@ app.patch("/api/tasks/:id", verifyToken, async (req, res) => {
   }
 });
 //get freelancer by role
-app.get("/api/user/freelancer", verifyToken, async (req, res) => {
+app.get("/api/user/freelancer", async (req, res) => {
   try {
     const { name, skill } = req.query;
 
