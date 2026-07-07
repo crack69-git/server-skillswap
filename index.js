@@ -132,6 +132,20 @@ app.post("/api/create-checkout-session", verifyToken, async (req, res) => {
   }
 });
 
+// total earning in paymentcollection
+app.get("/api/payments/total-earning", verifyToken, async (req, res) => {
+  try {
+    const payments = await paymentsCollection.find({}).toArray();
+    const totalEarning = payments.reduce(
+      (sum, payment) => sum + Number(payment.amount_received), // ✅ cast to Number
+      0,
+    );
+    res.json({ totalEarning });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // get sum of amout_received from payments collection with freelancerMail
 app.get("/api/payments/sum/:email", verifyToken, async (req, res) => {
   const email = req.params.email;
