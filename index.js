@@ -398,6 +398,84 @@ async function run() {
         res.status(500).send({ error: err.message });
       }
     });
+    // top freelancers by earnings
+    app.get("/api/user/freelancer/top", verifyToken, async (req, res) => {
+      try {
+        const topFreelancers = await paymentsCollection
+          .aggregate([
+            {
+              $match: {
+                status: "succeeded",
+              },
+            },
+
+            {
+              $group: {
+                _id: "$freelancerMail",
+
+                // Number of completed jobs
+                completedTasks: {
+                  $sum: 1,
+                },
+
+                // Total money earned
+                totalEarned: {
+                  $sum: "$amount_received",
+                },
+              },
+            },
+
+            // Sort by completed jobs first,
+            // then by earnings if there's a tie
+            {
+              $sort: {
+                completedTasks: -1,
+                totalEarned: -1,
+              },
+            },
+
+            {
+              $limit: 6,
+            },
+
+            {
+              $lookup: {
+                from: "user",
+                localField: "_id",
+                foreignField: "email",
+                as: "user",
+              },
+            },
+
+            {
+              $unwind: "$user",
+            },
+
+            {
+              $project: {
+                _id: "$user._id",
+                name: "$user.name",
+                email: "$user.email",
+                image: "$user.image",
+                bio: "$user.bio",
+                skills: "$user.skills",
+                hourlyRate: "$user.hourlyRate",
+                role: "$user.role",
+                userState: "$user.userState",
+
+                completedTasks: 1,
+                totalEarned: 1,
+              },
+            },
+          ])
+          .toArray();
+
+        res.send(topFreelancers);
+      } catch (err) {
+        res.status(500).send({ error: err.message });
+      }
+    });
+
     // user get
     app.get("/api/user", verifyToken, async (req, res) => {
       const result = await usersCollection.find().toArray();
