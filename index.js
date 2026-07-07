@@ -470,7 +470,7 @@ app.get("/api/user/freelancer/top", async (req, res) => {
 });
 
 // user get
-app.get("/api/user", verifyToken, async (req, res) => {
+app.get("/api/user", async (req, res) => {
   const result = await usersCollection.find().toArray();
   res.send(result);
 });
