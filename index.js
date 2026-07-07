@@ -392,7 +392,7 @@ app.get("/api/user/freelancer", verifyToken, async (req, res) => {
   }
 });
 // top freelancers by earnings
-app.get("/api/user/freelancer/top", verifyToken, async (req, res) => {
+app.get("/api/user/freelancer/top", async (req, res) => {
   try {
     const topFreelancers = await paymentsCollection
       .aggregate([
