@@ -351,6 +351,7 @@ app.delete("/api/tasks/:id", verifyToken, async (req, res) => {
   try {
     const result = await tasksCollection.deleteOne({
       _id: new ObjectId(id),
+      $sort: { createdAt: -1 },
     });
     if (result.deletedCount === 0) {
       return res.status(404).json({ success: false, error: "Task not found" });
