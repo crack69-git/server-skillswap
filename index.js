@@ -9,20 +9,11 @@ const dotenv = require("dotenv");
 
 dotenv.config();
 const app = express();
-const allowedOrigins = ["https://skillswap-client-six.vercel.app"];
 
 app.use(
   cors({
-    origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
+    origin: true,
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"],
   }),
 );
 
@@ -93,7 +84,7 @@ app.post("/api/freelancers/profile", verifyToken, async (req, res) => {
   }
 });
 
-app.post("/api/create-checkout-session", verifyToken, async (req, res) => {
+app.post("/api/create-checkout-session", async (req, res) => {
   try {
     const { proposalId } = req.body;
 
