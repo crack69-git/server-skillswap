@@ -9,7 +9,7 @@ const dotenv = require("dotenv");
 
 dotenv.config();
 const app = express();
-const allowedOrigins = "process.env.BASE_URL"; // Your production frontend
+const allowedOrigins = ["https://skillswap-client-six.vercel.app"];
 
 app.use(
   cors({
@@ -25,6 +25,7 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization"],
   }),
 );
+
 app.use(express.json());
 
 const { ObjectId } = require("mongodb");
