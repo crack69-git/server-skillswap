@@ -10,12 +10,7 @@ const dotenv = require("dotenv");
 dotenv.config();
 const app = express();
 
-app.use(
-  cors({
-    origin: true,
-    credentials: true,
-  }),
-);
+app.use(cors());
 
 app.use(express.json());
 
@@ -70,6 +65,7 @@ const proposalsCollection = database.collection("proposals");
 const usersCollection = database.collection("user");
 const paymentsCollection = database.collection("payments");
 const freelancersCollection = database.collection("freelancers");
+
 //stripe checkout
 const Stripe = require("stripe");
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
