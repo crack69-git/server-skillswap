@@ -10,19 +10,7 @@ const dotenv = require("dotenv");
 dotenv.config();
 const app = express();
 
-app.use(
-  cors({
-    origin: [
-      "http://localhost:3000",
-      "https://skill-swap-client-six.vercel.app",
-    ],
-    methods: ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
-  }),
-);
-
-app.options("*", cors());
+app.use(cors());
 
 app.use(express.json());
 
@@ -94,12 +82,16 @@ app.post("/api/freelancers/profile", verifyToken, async (req, res) => {
 
 app.post("/api/create-checkout-session", async (req, res) => {
   try {
+    console.log("Checkout endpoint called");
+    console.log("Body:", req.body);
+    console.log("Stripe key exists:", !!process.env.STRIPE_SECRET_KEY);
     const { proposalId } = req.body;
+    console.log("Proposal ID received:", proposalId);
 
     const proposal = await proposalsCollection.findOne({
       _id: new ObjectId(proposalId),
     });
-
+    console.log("Proposal found:", proposal);
     if (!proposal) {
       return res.status(404).json({
         message: "Proposal not found",
