@@ -9,11 +9,20 @@ const dotenv = require("dotenv");
 
 dotenv.config();
 const app = express();
+const allowedOrigins = "process.env.BASE_URL"; // Your production frontend
+
 app.use(
   cors({
-    origin: process.env.BASE_URL,
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   }),
 );
 app.use(express.json());
