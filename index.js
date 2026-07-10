@@ -311,7 +311,7 @@ app.get("/api/payments/total/:email", verifyToken, async (req, res) => {
 });
 
 // change state of tasks
-app.patch("/api/proposals/:id", verifyToken, async (req, res) => {
+app.patch("/api/proposals/reject/:id", verifyToken, async (req, res) => {
   const id = req.params.id;
   const updateData = req.body;
   try {
