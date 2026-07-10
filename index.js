@@ -493,7 +493,7 @@ app.get("/api/user/freelancer/top", async (req, res) => {
 });
 
 // user get
-app.get("/api/user", async (req, res) => {
+app.get("/api/user", verifyToken, async (req, res) => {
   const result = await usersCollection.find().toArray();
   res.send(result);
 });
@@ -648,7 +648,7 @@ app.post("/api/tasks", verifyToken, async (req, res) => {
 });
 
 // get jobs for client
-app.get("/api/tasks", verifyToken, async (req, res) => {
+app.get("/api/tasks/get", verifyToken, async (req, res) => {
   const result = await tasksCollection.find().sort({ createdAt: -1 }).toArray();
   res.send(result);
 });
